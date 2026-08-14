@@ -8,21 +8,21 @@ export const SCHEMA_VERSION = 1;
 
 /** 支出账户（五大类 + 兜底） */
 export const ACCOUNTS = {
-  life:   { name: '生活账户', essential: true,  icon: '🍜', color: '#34C759', desc: '吃饭、交通、水果等必要开销' },
-  study:  { name: '学习账户', essential: true,  icon: '📚', color: '#007AFF', desc: '学习、技能提升等变动开销' },
-  fun:    { name: '娱乐账户', essential: false, icon: '🎮', color: '#FF9500', desc: '娱乐、零食等非必要开销' },
-  urgent: { name: '应急账户', essential: true,  icon: '🩺', color: '#FF3B30', desc: '医疗、意外等开销' },
-  wish:   { name: '愿望账户', essential: false, icon: '⭐', color: '#AF52DE', desc: '想买但非刚需的愿望基金' },
-  other:  { name: '其他支出', essential: false, icon: '📦', color: '#8E8E93', desc: '无法归类的支出' },
+  life:   { name: '生活账户', essential: true,  icon: '🍜', color: '#34C759', desc: '吃饭、交通、水果等必要开销', tags: ['吃饭', '交通', '水果'] },
+  study:  { name: '学习账户', essential: true,  icon: '📚', color: '#007AFF', desc: '学习、技能提升等变动开销', tags: ['买书', '课程', '文具'] },
+  fun:    { name: '娱乐账户', essential: false, icon: '🎮', color: '#FF9500', desc: '娱乐、零食等非必要开销', tags: ['零食', '游戏', '看电影'] },
+  urgent: { name: '应急账户', essential: true,  icon: '🩺', color: '#FF3B30', desc: '医疗、意外等开销', tags: ['看病', '买药', '意外支出'] },
+  wish:   { name: '愿望账户', essential: false, icon: '⭐', color: '#AF52DE', desc: '想买但非刚需的愿望基金', tags: ['存钱', '买愿望物品'] },
+  other:  { name: '其他支出', essential: false, icon: '📦', color: '#8E8E93', desc: '无法归类的支出', tags: ['其他', '杂项'] },
 };
 
 /** 收入账户 */
 export const INCOME_ACCOUNTS = {
-  salary:  { name: '工资',     icon: '💼', color: '#30D158' },
-  bonus:   { name: '奖金',     icon: '🎁', color: '#64D2FF' },
-  side:    { name: '兼职/副业', icon: '🛠️', color: '#BF5AF2' },
-  invest:  { name: '理财收益', icon: '📈', color: '#0A84FF' },
-  otherIn: { name: '其他收入', icon: '💰', color: '#A2845E' },
+  salary:  { name: '工资',     icon: '💼', color: '#30D158', tags: ['工资', '月薪', '发薪'] },
+  bonus:   { name: '奖金',     icon: '🎁', color: '#64D2FF', tags: ['奖金', '年终奖', '绩效'] },
+  side:    { name: '兼职/副业', icon: '🛠️', color: '#BF5AF2', tags: ['兼职', '副业', '外快'] },
+  invest:  { name: '理财收益', icon: '📈', color: '#0A84FF', tags: ['理财收益', '利息', '分红'] },
+  otherIn: { name: '其他收入', icon: '💰', color: '#A2845E', tags: ['红包', '其他收入'] },
 };
 
 export const PAY_METHODS = ['微信', '支付宝', '云闪付', '京东', '现金', '银行卡'];
@@ -56,6 +56,12 @@ export function todayStr(offsetDays = 0) {
 
 export function monthKey(dateStr) {
   return (dateStr || '').slice(0, 7); // "2026-08"
+}
+
+export function prevMonthKey(m) {
+  const [y, mo] = (m || monthKey(todayStr())).split('-').map(Number);
+  const d = new Date(y, mo - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
 /** 金额键盘按键处理（纯函数，供单测）。key ∈ {'0'..'9', '.', 'del'}，返回新金额字符串 */
@@ -275,4 +281,55 @@ export function summaryCsv(txs) {
   }
   const csv = lines.map((r) => r.map(csvEscape).join(',')).join('\r\n');
   return '\uFEFF' + csv;
+}
+
+/* ---------------- 消费小结/建议（本地规则，隐私安全，不依赖外部模型） ---------------- */
+
+/**
+ * 基于账本数据生成消费小结与建议。
+ * @returns {{composition:{summary:string,advice:string[]}, trend:{summary:string,advice:string[]}}}
+ */
+export function generateInsights(txs) {
+  const cur = monthKey(todayStr());
+  const prev = prevMonthKey(cur);
+  const s = summarize(txs, cur);
+  const ps = summarize(txs, prev);
+
+  // —— 支出构成小结 ——
+  const top = Object.entries(s.byAccount).sort((a, b) => b[1] - a[1])[0];
+  const topName = top ? (ACCOUNTS[top[0]]?.name || top[0]) : '';
+  const topPct = s.expense > 0 && top ? Math.round((top[1] / s.expense) * 100) : 0;
+  const nonEssential = (s.byAccount.fun || 0) + (s.byAccount.wish || 0);
+  const nonEssPct = s.expense > 0 ? Math.round((nonEssential / s.expense) * 100) : 0;
+
+  const composition = {
+    summary: s.expense > 0
+      ? `本月支出 ${fmtMoney(s.expense)}${topName ? `，主要花在${topName}（${topPct}%）` : ''}；非必要开销占比 ${nonEssPct}%。`
+      : '本月暂无支出记录。',
+    advice: [],
+  };
+  if (s.expense > 0) {
+    if (nonEssPct > 30) composition.advice.push(`非必要开销（娱乐/愿望）占比 ${nonEssPct}%，已超 30%，建议适当收紧`);
+    else composition.advice.push(`非必要开销控制在 ${nonEssPct}%，保持得不错`);
+  }
+  if ((s.byAccount.urgent || 0) > 0) composition.advice.push(`本月应急支出 ${fmtMoney(s.byAccount.urgent)}，建议保留应急账户储备`);
+
+  // —— 趋势小结 ——
+  const diff = s.expense - ps.expense;
+  const diffPct = ps.expense > 0 ? Math.round((Math.abs(diff) / ps.expense) * 100) : 0;
+  const savingRate = s.income > 0 ? Math.round(((s.income - s.expense) / s.income) * 100) : 0;
+
+  const trend = {
+    summary: ps.expense > 0
+      ? `本月支出 ${fmtMoney(s.expense)}，较上月${diff >= 0 ? '增加' : '减少'} ${diffPct}%；结余率 ${savingRate}%。`
+      : '上月暂无数据，再记一两个月就能生成趋势小结。',
+    advice: [],
+  };
+  if (s.income > 0) {
+    if (savingRate < 0) trend.advice.push('本月支出已超过收入，建议立即控制开销');
+    else if (savingRate < 20) trend.advice.push(`结余率 ${savingRate}% 偏低，建议提升到 20% 以上`);
+    else trend.advice.push(`结余率 ${savingRate}%，财务状况健康`);
+  }
+
+  return { composition, trend };
 }

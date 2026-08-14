@@ -3,7 +3,7 @@
  */
 
 import * as models from '../models.js';
-import { ring, esc } from '../charts.js';
+import { esc } from '../charts.js';
 import { addGoal, deleteGoal, go, toast, rerender } from '../app.js';
 
 const newGoal = { name: '', target: '', deadline: '' };
@@ -21,28 +21,26 @@ export function render(app) {
 
   const goalCards = goals.length
     ? goals.map((g) => {
-        const pct = g.target > 0 ? (g.saved / g.target) * 100 : 0;
+        const pct = g.target > 0 ? Math.min(100, (g.saved / g.target) * 100) : 0;
         const plan = models.planGoal(g, { monthlyIncome: income, monthlyEssential: essential }, today);
-        const daysLeft = models.daysBetween(today, g.deadline);
+        const daysLeft = Math.max(0, models.daysBetween(today, g.deadline));
         return `
         <div class="card wish-card" data-gid="${esc(g.id)}">
-          <div class="wish-main">
-            <div class="wish-head">
-              <h3>${esc(g.name)}</h3>
-              <button class="tx-del" data-delgoal="${esc(g.id)}" aria-label="删除愿望">✕</button>
-            </div>
-            <div class="wish-progress">
-              <div class="wish-nums">
-                <span>已存 <b>${esc(models.fmtMoney(g.saved))}</b></span>
-                <span>目标 <b>${esc(models.fmtMoney(g.target))}</b></span>
-              </div>
-              <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, pct).toFixed(1)}%"></div></div>
-              <div class="wish-sub">剩余 ${esc(models.fmtMoney(g.remain))} · 还差 ${Math.max(0, daysLeft)} 天</div>
-            </div>
-            <div class="wish-plan ${plan.ok ? 'ok' : 'warn'}">${esc(plan.note)}</div>
-            <button class="btn primary small" data-deposit="${esc(g.id)}">存入一笔</button>
+          <div class="wish-head">
+            <h3>${esc(g.name)}</h3>
+            <button class="tx-del" data-delgoal="${esc(g.id)}" aria-label="删除愿望">✕</button>
           </div>
-          ${ring(Math.min(100, pct), { color: '#AF52DE', label: '' })}
+          <div class="progress-track"><div class="progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+          <div class="wish-nums">
+            <span>已存 <b>${esc(models.fmtMoney(g.saved))}</b></span>
+            <span class="wish-pct">${pct.toFixed(0)}%</span>
+            <span>目标 <b>${esc(models.fmtMoney(g.target))}</b></span>
+          </div>
+          <div class="wish-plan ${plan.ok ? 'ok' : 'warn'}">${esc(plan.note)}</div>
+          <div class="wish-actions">
+            <button class="btn primary small" data-deposit="${esc(g.id)}">存入一笔</button>
+            <span class="wish-sub">剩余 ${esc(models.fmtMoney(g.remain))} · 还差 ${daysLeft} 天</span>
+          </div>
         </div>`;
       }).join('')
     : `<div class="card empty-hint">还没有愿望。把想买的东西写下来，按计划存钱实现它吧 ✨</div>`;

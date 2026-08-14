@@ -244,6 +244,43 @@ test('summaryCsv 汇总输出', () => {
   assert.ok(csv.includes('存入愿望基金,deposit,500'));
 });
 
+/* ---------------- 消费小结（generateInsights） ---------------- */
+
+function ym(offset) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+test('generateInsights 空数据返回占位文案', () => {
+  const r = m.generateInsights([]);
+  assert.match(r.composition.summary, /暂无支出/);
+  assert.match(r.trend.summary, /暂无数据/);
+  assert.equal(r.composition.advice.length, 0);
+});
+
+test('generateInsights 非必要开销超限给出收紧建议', () => {
+  const cur = ym(0);
+  const txs = [
+    { id: '1', date: `${cur}-05`, type: 'expense', account: 'fun', amount: 400, note: '', payMethod: '', goalId: null },
+    { id: '2', date: `${cur}-06`, type: 'expense', account: 'life', amount: 100, note: '', payMethod: '', goalId: null },
+  ];
+  const r = m.generateInsights(txs);
+  assert.match(r.composition.summary, /非必要开销占比 80%/);
+  assert.ok(r.composition.advice.some((a) => /收紧|30%/.test(a)));
+});
+
+test('generateInsights 结余率偏低给出建议', () => {
+  const cur = ym(0);
+  const txs = [
+    { id: '1', date: `${cur}-05`, type: 'income', account: 'salary', amount: 1000, note: '', payMethod: '', goalId: null },
+    { id: '2', date: `${cur}-06`, type: 'expense', account: 'life', amount: 900, note: '', payMethod: '', goalId: null },
+  ];
+  const r = m.generateInsights(txs);
+  // 上月无数据时 summary 是占位文案，结余率建议在 advice 中
+  assert.ok(r.trend.advice.some((a) => /偏低|20%/.test(a)));
+});
+
 /* ---------------- 空账本 ---------------- */
 
 test('emptyLedger 结构完整', () => {

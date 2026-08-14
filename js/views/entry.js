@@ -16,6 +16,19 @@ const state = {
   goalId: null,
 };
 
+/** 每次进入记账页时重置为初始状态（金额/备注归零，类型回到支出） */
+function resetState() {
+  const presetGoal = sessionStorage.getItem('ledger:goal');
+  state.type = 'expense';
+  state.account = 'life';
+  state.amount = '';
+  state.date = models.todayStr();
+  state.note = '';
+  state.payMethod = '微信';
+  state.goalId = presetGoal || null;
+  if (presetGoal) sessionStorage.removeItem('ledger:goal');
+}
+
 function moneyStr() {
   if (!state.amount) return '0';
   const [i, d] = state.amount.split('.');
@@ -29,16 +42,25 @@ function accountsForType() {
   return models.ACCOUNTS;
 }
 
+/** 当前账户的高频备注词 */
+function currentTags() {
+  const accts = accountsForType();
+  const a = accts[state.account] || {};
+  return a.tags || [];
+}
+
 export function render(app) {
-  const presetGoal = sessionStorage.getItem('ledger:goal');
-  state.goalId = presetGoal || null;
-  if (presetGoal) sessionStorage.removeItem('ledger:goal');
+  resetState(); // 首次进入：回归初始状态
+  return renderBody(app);
+}
+
+function renderBody(app) {
   const accts = accountsForType();
   const goals = models.goalProgress(app.data.goals, app.data.transactions)
     .filter((g) => g.remain > 0);
 
   const grid = Object.entries(accts).map(([key, a]) => `
-    <button class="acct-cell ${state.type !== 'income' && state.account === key ? 'sel' : ''}" data-acct="${esc(key)}">
+    <button class="acct-cell ${state.account === key ? 'sel' : ''}" data-acct="${esc(key)}">
       <span class="acct-ico" style="background:${esc(a.color)}22">${esc(a.icon)}</span>
       <span class="acct-name">${esc(a.name)}</span>
     </button>`).join('');
@@ -56,6 +78,13 @@ export function render(app) {
     ? `<div class="field">
         <label>支付方式</label>
         <div class="chip-row">${models.PAY_METHODS.map((m) => `<button class="chip ${state.payMethod === m ? 'sel' : ''}" data-pay="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+      </div>`
+    : '';
+
+  const curTags = currentTags();
+  const tagsRow = curTags.length
+    ? `<div class="note-tags" id="note-tags" hidden>
+        ${curTags.map((t) => `<button class="chip" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
       </div>`
     : '';
 
@@ -83,7 +112,9 @@ export function render(app) {
     <div class="form-row">
       <label>备注</label>
       <input type="text" id="tx-note" placeholder="可选" maxlength="200" value="${esc(state.note)}">
+      ${curTags.length ? `<button class="note-toggle" id="note-toggle" aria-label="高频词">▾</button>` : ''}
     </div>
+    ${tagsRow}
   </div>
 
   <div class="numpad" id="numpad">
@@ -107,11 +138,32 @@ export function bind(app) {
     });
   });
 
-  // 分类选择
+  // 分类选择（收入/支出通用，点击即高亮，备注为空时自动填高频词）
   document.querySelectorAll('.acct-cell').forEach((b) => {
     b.addEventListener('click', () => {
       state.account = b.dataset.acct;
+      if (!state.note) {
+        const tags = currentTags();
+        if (tags.length) state.note = tags[0];
+      }
       rerenderEntry();
+    });
+  });
+
+  // 备注高频词下拉
+  const noteToggle = document.getElementById('note-toggle');
+  if (noteToggle) {
+    noteToggle.addEventListener('click', () => {
+      const t = document.getElementById('note-tags');
+      if (t) t.hidden = !t.hidden;
+    });
+  }
+  document.querySelectorAll('[data-tag]').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.note = b.dataset.tag;
+      document.getElementById('tx-note').value = state.note;
+      const t = document.getElementById('note-tags');
+      if (t) t.hidden = true;
     });
   });
 
@@ -158,8 +210,6 @@ export function bind(app) {
         payMethod: state.type === 'expense' ? state.payMethod : '',
         goalId: state.type === 'deposit' ? state.goalId : null,
       });
-      state.amount = '';
-      state.note = '';
       toast(state.type === 'income' ? '收入已记录' : state.type === 'deposit' ? '已存入愿望基金' : '支出已记录');
       go('home');
     } catch (e) {
@@ -168,9 +218,9 @@ export function bind(app) {
   });
 }
 
+/** 内部重绘（不重置 state，保留已输入内容） */
 function rerenderEntry() {
-  // 重绘分类/愿望/支付区块（金额输入状态保留在 state 中）
   const main = document.getElementById('main');
-  main.innerHTML = render(app);
+  main.innerHTML = renderBody(app);
   bind(app);
 }

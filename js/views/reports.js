@@ -43,6 +43,8 @@ export function render(app) {
 
   const net = s.income - s.expense - s.deposit;
 
+  const insights = models.generateInsights(app.data.transactions);
+
   return `
   <div class="month-nav">
     <button class="icon-btn" data-month-dir="-1" aria-label="上一月">‹</button>
@@ -64,6 +66,7 @@ export function render(app) {
       <div class="donut-wrap">${donutSvg}</div>
       <div class="legend">${legend}</div>
     </div>
+    ${insightBlock('ins-comp', '支出小结', insights.composition)}
   </section>
 
   <section class="section">
@@ -72,10 +75,34 @@ export function render(app) {
       ${bars(months6)}
       <div class="trend-legend"><span class="trend-dot inc"></span>收入 <span class="trend-dot exp"></span>支出</div>
     </div>
+    ${insightBlock('ins-trend', '趋势小结', insights.trend)}
   </section>`;
 }
 
+function insightBlock(id, title, insight) {
+  return `
+  <div class="insight-head collapsible" data-collapse="${id}">
+    <span class="insight-title">💡 ${esc(title)}</span><span class="chev">›</span>
+  </div>
+  <div class="collapsible-body" id="${id}" hidden>
+    <div class="card insight-card">
+      <div class="insight-summary">${esc(insight.summary)}</div>
+      ${insight.advice.length ? `<div class="insight-advice">${insight.advice.map((a) => `<div class="insight-advice-line">· ${esc(a)}</div>`).join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 export function bind(app) {
+  // 折叠小结
+  document.querySelectorAll('[data-collapse]').forEach((head) => {
+    head.addEventListener('click', () => {
+      const body = document.getElementById(head.dataset.collapse);
+      if (!body) return;
+      body.hidden = !body.hidden;
+      head.classList.toggle('open', !body.hidden);
+    });
+  });
+
   document.querySelectorAll('[data-month-dir]').forEach((b) => {
     b.addEventListener('click', () => {
       const [y, mo] = state.month.split('-').map(Number);
