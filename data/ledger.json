@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "transactions": [],
+  "goals": [],
+  "settings": {
+    "monthlyIncome": null,
+    "monthlyEssential": null
+  },
+  "meta": {
+    "createdAt": 1755162000000,
+    "updatedAt": 1755162000000
+  }
+}
