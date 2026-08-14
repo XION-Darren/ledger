@@ -4,7 +4,7 @@
 
 - **形态**：纯静态 PWA（零构建、零外部依赖），手机浏览器打开后「添加到主屏幕」即成 App
 - **界面**：Apple 设计语言（简约、圆角卡片、毛玻璃、系统字体）
-- **数据**：存储在 GitHub 仓库的 `data/ledger.json`，手机与电脑访问同一网址即自动同步
+- **数据**：**双仓库架构**——代码仓库 `ledger`（公开，托管网页）+ 数据仓库 `ledger-data`（私有，存 `data/ledger.json`），手机与电脑访问同一网址即自动同步，**消费明细仅你可见**
 
 ---
 
@@ -63,6 +63,25 @@ powershell -ExecutionPolicy Bypass -File tools/deploy.ps1 -Token ghp_你的token
 ```
 脚本通过 GitHub REST API 完成全部步骤，输出线上地址 `https://你的用户名.github.io/ledger/`。
 
+### 双仓库隐私方案（推荐生产使用）
+网页需要公开仓库（GitHub Pages 免费版不支持私有仓库发布），但**账本数据不想公开**——所以拆两个仓库：
+
+1. 代码仓库 `ledger`（公开）：放网页代码，用上面任意方式部署
+2. 数据仓库 `ledger-data`（私有）：存 `data/ledger.json`
+   - GitHub 网页新建仓库 → 勾选 **Private** → 命名为 `ledger-data`
+   - 应用「设置」页填：数据所有者 `你的用户名`、数据仓库名 `ledger-data`
+   - 首次连接时应用会自动把空账本推送到私有仓库
+
+设置页完整填写示例：
+
+| 字段 | 值 | 说明 |
+| --- | --- | --- |
+| 仓库所有者 | `XION-Darren` | 代码仓库的 GitHub 用户名 |
+| 仓库名 | `ledger` | 代码仓库名（公开，跑网页） |
+| Access Token | `ghp_...` | repo 权限，一个就够 |
+| 数据所有者 | `XION-Darren` | 数据仓库用户名（留空=同代码仓库） |
+| 数据仓库名 | `ledger-data` | 数据仓库名（建议私有） |
+
 ### 创建 Token 步骤
 > 先搞清楚两个用途，避免混淆：
 > - **部署用**（一次性）：deploy.ps1 建仓库、传代码、开 Pages。用完即可撤销 → **有效期 7 天足够**。
@@ -108,7 +127,7 @@ ledger-app/
 │   ├── charts.js           # 零依赖 SVG 图表（环形/柱状/进度环）
 │   └── views/              # 五个页面视图
 ├── assets/                 # Logo 与图标（icon.svg 为唯一源）
-├── data/ledger.json        # 账本数据文件（GitHub 中的同步文件）
+├── data/ledger.json        # 账本数据文件（生产环境存于私有数据仓库 ledger-data）
 ├── tests/run-tests.js      # 单元测试
 ├── tools/make-icons.ps1    # 图标 PNG 生成脚本
 └── DESIGN.md               # 设计规范（模板提炼的原始素材）

@@ -58,7 +58,7 @@ export function render() {
     <div class="card form-card about">
       <div class="about-line">流水账 Ledger v1.0 · 纯静态 PWA · 零依赖</div>
       <div class="about-line">五类账户：生活 / 学习 / 娱乐 / 应急 / 愿望</div>
-      <div class="about-line">数据文件：仓库 <code>data/ledger.json</code></div>
+      <div class="about-line">数据文件：数据仓库 <code>data/ledger.json</code>（建议私有）</div>
       <div class="about-line"><button class="link-btn" id="btn-reset-local">清除本机缓存数据</button></div>
     </div>
   </section>`;
