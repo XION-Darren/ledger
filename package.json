@@ -1,0 +1,10 @@
+{
+  "name": "ledger",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "流水账 · 纯静态 PWA（零构建、零依赖）",
+  "scripts": {
+    "test": "node tests/run-tests.js"
+  }
+}
