@@ -96,7 +96,10 @@ export const storage = {
     const d = this._dataRepo();
     try {
       const j = await this._request('GET', `/repos/${encodeURIComponent(d.owner)}/${encodeURIComponent(d.repo)}/contents/${DATA_PATH}`);
-      const text = atob(j.content.replace(/\s/g, ''));
+      // atob 返回 Latin-1 字符串，须按 UTF-8 解码，否则中文会乱码
+      const binary = atob(j.content.replace(/\s/g, ''));
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      const text = new TextDecoder('utf-8').decode(bytes);
       return { exists: true, sha: j.sha, data: JSON.parse(text) };
     } catch (e) {
       if (e.status === 404) return { exists: false, sha: null, data: null };
