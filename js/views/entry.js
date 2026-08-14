@@ -81,6 +81,13 @@ function renderBody(app) {
       </div>`
     : '';
 
+  const curTags = currentTags();
+  const tagsRow = curTags.length
+    ? `<div class="note-tags">
+        ${curTags.map((t) => `<button class="chip ${state.note === t ? 'sel' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
+      </div>`
+    : '';
+
   return `
   <div class="seg">
     <button class="seg-btn ${state.type === 'expense' ? 'sel' : ''}" data-type="expense">支出</button>
@@ -106,6 +113,7 @@ function renderBody(app) {
       <label>备注</label>
       <input type="text" id="tx-note" placeholder="可选" maxlength="200" value="${esc(state.note)}">
     </div>
+    ${tagsRow}
   </div>
 
   <div class="numpad" id="numpad">
@@ -138,6 +146,15 @@ export function bind(app) {
         if (tags.length) state.note = tags[0];
       }
       rerenderEntry();
+    });
+  });
+
+  // 备注高频词候选（点击填入）
+  document.querySelectorAll('[data-tag]').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.note = b.dataset.tag;
+      document.getElementById('tx-note').value = state.note;
+      document.querySelectorAll('[data-tag]').forEach((c) => c.classList.toggle('sel', c === b));
     });
   });
 
