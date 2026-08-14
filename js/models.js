@@ -8,21 +8,21 @@ export const SCHEMA_VERSION = 1;
 
 /** 支出账户（五大类 + 兜底） */
 export const ACCOUNTS = {
-  life:   { name: '生活账户', essential: true,  icon: '生', color: '#34C759', desc: '吃饭、交通、水果等必要开销', tags: ['吃饭', '交通', '水果'] },
-  study:  { name: '学习账户', essential: true,  icon: '学', color: '#007AFF', desc: '学习、技能提升等变动开销', tags: ['买书', '课程', '文具'] },
-  fun:    { name: '娱乐账户', essential: false, icon: '娱', color: '#FF9500', desc: '娱乐、零食等非必要开销', tags: ['零食', '游戏', '看电影'] },
-  urgent: { name: '应急账户', essential: true,  icon: '急', color: '#FF3B30', desc: '医疗、意外等开销', tags: ['看病', '买药', '意外支出'] },
-  wish:   { name: '愿望账户', essential: false, icon: '愿', color: '#AF52DE', desc: '想买但非刚需的愿望基金', tags: ['存钱', '买愿望物品'] },
-  other:  { name: '其他支出', essential: false, icon: '其', color: '#8E8E93', desc: '无法归类的支出', tags: ['其他', '杂项'] },
+  life:   { name: '生活账户', essential: true,  icon: '🍜', color: '#34C759', desc: '吃饭、交通、水果等必要开销', tags: ['吃饭', '交通', '水果'] },
+  study:  { name: '学习账户', essential: true,  icon: '📚', color: '#007AFF', desc: '学习、技能提升等变动开销', tags: ['买书', '课程', '文具'] },
+  fun:    { name: '娱乐账户', essential: false, icon: '🎮', color: '#FF9500', desc: '娱乐、零食等非必要开销', tags: ['零食', '游戏', '看电影'] },
+  urgent: { name: '应急账户', essential: true,  icon: '🩺', color: '#FF3B30', desc: '医疗、意外等开销', tags: ['看病', '买药', '意外支出'] },
+  wish:   { name: '愿望账户', essential: false, icon: '⭐', color: '#AF52DE', desc: '想买但非刚需的愿望基金', tags: ['存钱', '买愿望物品'] },
+  other:  { name: '其他支出', essential: false, icon: '📦', color: '#8E8E93', desc: '无法归类的支出', tags: ['其他', '杂项'] },
 };
 
 /** 收入账户 */
 export const INCOME_ACCOUNTS = {
-  salary:  { name: '工资',     icon: '薪', color: '#30D158', tags: ['工资', '月薪', '发薪'] },
-  bonus:   { name: '奖金',     icon: '奖', color: '#64D2FF', tags: ['奖金', '年终奖', '绩效'] },
-  side:    { name: '兼职/副业', icon: '副', color: '#BF5AF2', tags: ['兼职', '副业', '外快'] },
-  invest:  { name: '理财收益', icon: '财', color: '#0A84FF', tags: ['理财收益', '利息', '分红'] },
-  otherIn: { name: '其他收入', icon: '收', color: '#A2845E', tags: ['红包', '其他收入'] },
+  salary:  { name: '工资',     icon: '💼', color: '#30D158', tags: ['工资', '月薪', '发薪'] },
+  bonus:   { name: '奖金',     icon: '🎁', color: '#64D2FF', tags: ['奖金', '年终奖', '绩效'] },
+  side:    { name: '兼职/副业', icon: '🛠️', color: '#BF5AF2', tags: ['兼职', '副业', '外快'] },
+  invest:  { name: '理财收益', icon: '📈', color: '#0A84FF', tags: ['理财收益', '利息', '分红'] },
+  otherIn: { name: '其他收入', icon: '💰', color: '#A2845E', tags: ['红包', '其他收入'] },
 };
 
 export const PAY_METHODS = ['微信', '支付宝', '云闪付', '京东', '现金', '银行卡'];

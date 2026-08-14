@@ -28,19 +28,19 @@ export function render() {
       <div class="card form-card">
         ${conn}
         ${syncState}
-        <div class="form-row"><label>仓库所有者</label><input type="text" id="cfg-owner" placeholder="GitHub 用户名" value="${esc(cfg.owner)}" autocomplete="off"></div>
-        <div class="form-row"><label>仓库名</label><input type="text" id="cfg-repo" placeholder="如 ledger" value="${esc(cfg.repo)}" autocomplete="off"></div>
+        <div class="form-row"><label>仓库所有者</label><input type="text" id="cfg-owner" placeholder="GitHub 用户名" value="${esc(cfg.owner || 'XION-Darren')}" autocomplete="off"></div>
+        <div class="form-row"><label>仓库名</label><input type="text" id="cfg-repo" placeholder="如 ledger" value="${esc(cfg.repo || 'ledger')}" autocomplete="off"></div>
         <div class="form-row">
           <label>Access Token${masked ? ` <span class="masked">${esc(masked)}</span>` : ''}</label>
           <input type="password" id="cfg-token" placeholder="ghp_... 仅保存在本浏览器" value="" autocomplete="off">
         </div>
-        <div class="form-row"><label>数据所有者</label><input type="text" id="cfg-data-owner" placeholder="留空=同代码仓库" value="${esc(cfg.dataOwner || '')}" autocomplete="off"></div>
-        <div class="form-row"><label>数据仓库名</label><input type="text" id="cfg-data-repo" placeholder="如 ledger-data（建议私有）" value="${esc(cfg.dataRepo || '')}" autocomplete="off"></div>
+        <div class="form-row"><label>数据所有者</label><input type="text" id="cfg-data-owner" placeholder="留空=同代码仓库" value="${esc(cfg.dataOwner || 'XION-Darren')}" autocomplete="off"></div>
+        <div class="form-row"><label>数据仓库名</label><input type="text" id="cfg-data-repo" placeholder="如 ledger-data（建议私有）" value="${esc(cfg.dataRepo || 'ledger-data')}" autocomplete="off"></div>
         <div class="btn-row">
           <button class="btn primary" id="btn-test">测试连接并保存</button>
           <button class="btn outline" id="btn-clear">断开</button>
         </div>
-        <div class="hint">💡 <b>隐私建议</b>：代码仓库（公开，用于网页）与<b>数据仓库（私有，存 <code>data/ledger.json</code>）</b>分离——数据所有者/数据仓库名留空则数据存在代码仓库。Token 创建：GitHub → Settings → Developer settings → Personal access tokens → 勾选 <code>repo</code> 权限，<b>建议有效期 90 天以上</b>。Token 只保存在你浏览器的 localStorage，不会写入代码或仓库。</div>
+        <div class="hint">✅ <b>已预填你的仓库信息</b>（XION-Darren / ledger / ledger-data），你<b>只需填 Access Token</b> 再点「测试连接并保存」。Token 创建：GitHub → Settings → Developer settings → Personal access tokens → 勾选 <code>repo</code> 权限，<b>建议有效期 90 天以上</b>。Token 只保存在你浏览器的 localStorage，不会写入代码或仓库。</div>
       </div>
     </div>
   </section>
@@ -90,14 +90,14 @@ export function bind() {
   const btnTest = document.getElementById('btn-test');
   if (btnTest) {
     btnTest.addEventListener('click', async () => {
-      const owner = document.getElementById('cfg-owner').value.trim();
-      const repo = document.getElementById('cfg-repo').value.trim();
+      const owner = document.getElementById('cfg-owner').value.trim() || 'XION-Darren';
+      const repo = document.getElementById('cfg-repo').value.trim() || 'ledger';
       let token = document.getElementById('cfg-token').value.trim();
-      const dataOwner = document.getElementById('cfg-data-owner').value.trim();
-      const dataRepo = document.getElementById('cfg-data-repo').value.trim();
+      const dataOwner = document.getElementById('cfg-data-owner').value.trim() || 'XION-Darren';
+      const dataRepo = document.getElementById('cfg-data-repo').value.trim() || 'ledger-data';
       const old = storage.getConfig();
       if (!token && old.token) token = old.token; // 未重新输入则沿用
-      if (!owner || !repo || !token) return toast('请完整填写三项配置', 'err');
+      if (!token) return toast('请填写 Access Token', 'err');
       storage.setConfig({ owner, repo, token, dataOwner, dataRepo });
       try {
         const info = await storage.testConnection();

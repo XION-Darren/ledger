@@ -35,7 +35,7 @@ export function render(app) {
         const color = t.type === 'income' ? '#30D158' : t.type === 'deposit' ? '#AF52DE' : '#1C1C1E';
         return `
         <div class="tx-row" data-id="${esc(t.id)}">
-          <div class="tx-icon">${icon || '记'}</div>
+          <div class="tx-icon">${icon || '📌'}</div>
           <div class="tx-main">
             <div class="tx-note">${esc(t.note || label)}</div>
             <div class="tx-sub">${esc(label)} · ${esc(t.date)}${t.payMethod ? ' · ' + esc(t.payMethod) : ''}</div>

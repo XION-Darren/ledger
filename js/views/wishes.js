@@ -43,7 +43,7 @@ export function render(app) {
           </div>
         </div>`;
       }).join('')
-    : `<div class="card empty-hint">还没有愿望。把想买的东西写下来，按计划存钱实现它吧</div>`;
+    : `<div class="card empty-hint">还没有愿望。把想买的东西写下来，按计划存钱实现它吧 ✨</div>`;
 
   return `
   <section class="section">
