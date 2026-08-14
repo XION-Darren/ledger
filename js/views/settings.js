@@ -101,10 +101,16 @@ export function bind() {
       storage.setConfig({ owner, repo, token, dataOwner, dataRepo });
       try {
         const info = await storage.testConnection();
-        // 连接成功：尝试把本地数据推送到远端（若数据仓库尚无数据文件）
         const remote = await storage.fetchRemote();
         if (!remote.exists && app.data) {
-          await storage.pushRemote(app.data, null);
+          // 远端无数据：把本地数据推上去
+          const pushed = await storage.pushRemote(app.data, null);
+          app.sha = pushed.sha;
+        } else if (remote.exists) {
+          // 远端有数据：加载到本地并刷新界面
+          app.data = remote.data;
+          app.sha = remote.sha;
+          storage.saveLocal(remote.data);
         }
         app.connected = true;
         app.pending = false;
