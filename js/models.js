@@ -58,6 +58,20 @@ export function monthKey(dateStr) {
   return (dateStr || '').slice(0, 7); // "2026-08"
 }
 
+/** 金额键盘按键处理（纯函数，供单测）。key ∈ {'0'..'9', '.', 'del'}，返回新金额字符串 */
+export function pressAmountKey(amount, key) {
+  const cur = String(amount ?? '');
+  if (key === 'del') return cur.slice(0, -1);
+  if (key === '.') {
+    if (cur.includes('.')) return cur;
+    return cur + '.';
+  }
+  if (cur.includes('.') && cur.split('.')[1].length >= 2) return cur; // 最多两位小数
+  if (cur === '0' && key === '0') return cur; // 0 后不能再输入 0
+  if (cur === '0') return key; // 0 开头替换为数字，避免 "05"
+  return cur + key;
+}
+
 export function fmtMoney(n, currency = '¥') {
   const v = Math.round((Number(n) || 0) * 100) / 100;
   return `${currency}${v.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

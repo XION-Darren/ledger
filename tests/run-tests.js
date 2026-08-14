@@ -47,6 +47,28 @@ test('monthKey / daysBetween', () => {
   assert.equal(m.daysBetween('2026-01-31', '2026-01-01'), -30);
 });
 
+/* ---------------- 金额键盘（pressAmountKey） ---------------- */
+
+test('pressAmountKey 数字输入与退格', () => {
+  assert.equal(m.pressAmountKey('', '5'), '5');
+  assert.equal(m.pressAmountKey('123', 'del'), '12');
+  assert.equal(m.pressAmountKey('1', 'del'), '');
+  assert.equal(m.pressAmountKey('', 'del'), ''); // 空退格不报错
+});
+
+test('pressAmountKey 小数点与两位小数限制', () => {
+  assert.equal(m.pressAmountKey('12', '.'), '12.');
+  assert.equal(m.pressAmountKey('12.', '.'), '12.'); // 已有小数点不再加
+  assert.equal(m.pressAmountKey('12.3', '4'), '12.34');
+  assert.equal(m.pressAmountKey('12.34', '5'), '12.34'); // 超两位小数忽略
+});
+
+test('pressAmountKey 0 处理', () => {
+  assert.equal(m.pressAmountKey('0', '0'), '0'); // 0 后不再加 0
+  assert.equal(m.pressAmountKey('0', '5'), '5'); // 0 开头替换，避免 "05"
+  assert.equal(m.pressAmountKey('', '0'), '0');
+});
+
 /* ---------------- 汇总 ---------------- */
 
 const txs = [

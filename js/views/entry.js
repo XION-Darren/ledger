@@ -132,19 +132,10 @@ export function bind(app) {
   const amountText = document.getElementById('amount-text');
   document.querySelectorAll('.num').forEach((b) => {
     b.addEventListener('click', () => {
-      if (b.dataset.del) {
-        state.amount = state.amount.slice(0, -1);
+      if (b.dataset.del !== undefined) {
+        state.amount = models.pressAmountKey(state.amount, 'del');
       } else {
-        const k = b.dataset.num;
-        if (k === '.') {
-          if (!state.amount.includes('.')) state.amount += '.';
-        } else if (state.amount.includes('.') && state.amount.split('.')[1].length >= 2) {
-          // 最多两位小数
-        } else if (state.amount === '0' && k === '0') {
-          // 保持 0
-        } else {
-          state.amount += k;
-        }
+        state.amount = models.pressAmountKey(state.amount, b.dataset.num);
       }
       amountText.textContent = moneyStr();
     });
