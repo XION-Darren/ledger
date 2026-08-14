@@ -82,7 +82,7 @@ export function render(app) {
 function insightBlock(id, title, insight) {
   return `
   <div class="insight-head collapsible" data-collapse="${id}">
-    <span class="insight-title">💡 ${esc(title)}</span><span class="chev">›</span>
+    <span class="insight-title">${esc(title)}</span><span class="chev">›</span>
   </div>
   <div class="collapsible-body" id="${id}" hidden>
     <div class="card insight-card">

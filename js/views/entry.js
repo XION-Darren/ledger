@@ -81,13 +81,6 @@ function renderBody(app) {
       </div>`
     : '';
 
-  const curTags = currentTags();
-  const tagsRow = curTags.length
-    ? `<div class="note-tags" id="note-tags" hidden>
-        ${curTags.map((t) => `<button class="chip" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
-      </div>`
-    : '';
-
   return `
   <div class="seg">
     <button class="seg-btn ${state.type === 'expense' ? 'sel' : ''}" data-type="expense">支出</button>
@@ -112,9 +105,7 @@ function renderBody(app) {
     <div class="form-row">
       <label>备注</label>
       <input type="text" id="tx-note" placeholder="可选" maxlength="200" value="${esc(state.note)}">
-      ${curTags.length ? `<button class="note-toggle" id="note-toggle" aria-label="高频词">▾</button>` : ''}
     </div>
-    ${tagsRow}
   </div>
 
   <div class="numpad" id="numpad">
@@ -147,23 +138,6 @@ export function bind(app) {
         if (tags.length) state.note = tags[0];
       }
       rerenderEntry();
-    });
-  });
-
-  // 备注高频词下拉
-  const noteToggle = document.getElementById('note-toggle');
-  if (noteToggle) {
-    noteToggle.addEventListener('click', () => {
-      const t = document.getElementById('note-tags');
-      if (t) t.hidden = !t.hidden;
-    });
-  }
-  document.querySelectorAll('[data-tag]').forEach((b) => {
-    b.addEventListener('click', () => {
-      state.note = b.dataset.tag;
-      document.getElementById('tx-note').value = state.note;
-      const t = document.getElementById('note-tags');
-      if (t) t.hidden = true;
     });
   });
 
