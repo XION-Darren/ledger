@@ -4,7 +4,7 @@
 
 import * as models from '../models.js';
 import { esc } from '../charts.js';
-import { addTransaction, go, toast } from '../app.js';
+import { app, addTransaction, go, toast } from '../app.js';
 
 const state = {
   type: 'expense',
@@ -63,7 +63,7 @@ export function render(app) {
   <div class="seg">
     <button class="seg-btn ${state.type === 'expense' ? 'sel' : ''}" data-type="expense">支出</button>
     <button class="seg-btn ${state.type === 'income' ? 'sel' : ''}" data-type="income">收入</button>
-    <button class="seg-btn ${state.type === 'deposit' ? 'sel' : ''}" data-type="deposit">存入愿望</button>
+    <button class="seg-btn ${state.type === 'deposit' ? 'sel' : ''}" data-type="deposit">愿望</button>
   </div>
 
   <div class="amount-box">

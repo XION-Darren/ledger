@@ -4,20 +4,12 @@
 
 import * as models from '../models.js';
 import { donut, bars, esc } from '../charts.js';
-import { toast, rerender } from '../app.js';
+import { rerender } from '../app.js';
 
 const state = { month: models.monthKey(models.todayStr()) };
 
-function monthBounds(m) {
-  const [y, mo] = m.split('-').map(Number);
-  const start = new Date(y, mo - 1, 1);
-  const end = new Date(y, mo, 0);
-  return { start: m + '-01', end: `${m}-${String(end.getDate()).padStart(2, '0')}` };
-}
-
 export function render(app) {
   const s = models.summarize(app.data.transactions, state.month);
-  const { start, end } = monthBounds(state.month);
 
   const acctItems = Object.entries(models.ACCOUNTS)
     .map(([key, a]) => ({ key, ...a, value: s.byAccount[key] || 0 }))
@@ -80,15 +72,6 @@ export function render(app) {
       ${bars(months6)}
       <div class="trend-legend"><span class="trend-dot inc"></span>收入 <span class="trend-dot exp"></span>支出</div>
     </div>
-  </section>
-
-  <section class="section">
-    <div class="section-head"><h2>导出数据</h2></div>
-    <div class="card export-card">
-      <button class="btn outline" data-export="detail">导出交易明细 CSV</button>
-      <button class="btn outline" data-export="summary">导出账户汇总 CSV</button>
-      <div class="hint">范围：${esc(start)} ~ ${esc(end)}（全部交易按日期筛选，Excel 可直接打开）</div>
-    </div>
   </section>`;
 }
 
@@ -101,29 +84,4 @@ export function bind(app) {
       rerender();
     });
   });
-
-  document.querySelectorAll('[data-export]').forEach((b) => {
-    b.addEventListener('click', () => {
-      const { start, end } = monthBounds(state.month);
-      const txs = app.data.transactions
-        .filter((t) => t.date >= start && t.date <= end)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      const csv = b.dataset.export === 'detail'
-        ? models.transactionsCsv(txs, app.data.goals)
-        : models.summaryCsv(txs);
-      download(`${state.month}_${b.dataset.export === 'detail' ? '明细' : '汇总'}.csv`, csv);
-      toast('已导出 CSV');
-    });
-  });
-}
-
-function download(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }

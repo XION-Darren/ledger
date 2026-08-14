@@ -25,9 +25,10 @@ $big = Join-Path $root "assets\icon-512.png"
 $tmpBig = Join-Path $env:TEMP "ledger-icon-512.png"
 
 Write-Host "==> 渲染 512x512 底图"
+$profile = "$env:TEMP\ledger-edge-profile-$([guid]::NewGuid().ToString('N').Substring(0,8))"
 & $EdgePath --headless=new --disable-gpu --hide-scrollbars `
   --force-device-scale-factor=1 --default-background-color=00000000 `
-  --user-data-dir="$env:TEMP\ledger-edge-profile" `
+  --user-data-dir="$profile" `
   --window-size="512,512" --virtual-time-budget=2000 --screenshot="$tmpBig" $htmlUrl 2>$null
 
 if (!(Test-Path $tmpBig)) { Write-Error "底图生成失败"; exit 1 }

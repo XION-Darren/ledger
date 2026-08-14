@@ -4,12 +4,22 @@
 
 import * as models from '../models.js';
 import { esc } from '../charts.js';
-import { go, deleteTransaction, toast, rerender } from '../app.js';
+import { go, deleteTransaction, toast, rerender, persist } from '../app.js';
 
 export function render(app) {
   const m = models.monthKey(models.todayStr());
   const s = models.summarize(app.data.transactions, m);
   const net = s.income - s.expense - s.deposit;
+
+  // 能力配置（月收入 - 必要开销 = 可支配，供愿望计划用）
+  const settings = app.data.settings || {};
+  const income = Number(settings.monthlyIncome) || 0;
+  let essential = Number(settings.monthlyEssential) || 0;
+  if (!essential && app.data.transactions.length) {
+    essential = models.estimateEssential(app.data.transactions);
+  }
+  const affordable = Math.max(0, income - essential);
+  const abilityConfigured = !!(income || essential);
 
   const recent = [...app.data.transactions]
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
@@ -50,13 +60,29 @@ export function render(app) {
     </div>
   </section>
 
+  <section class="card ability-card">
+    <div class="ability-head">
+      <div>
+        <div class="ability-label">每月可支配</div>
+        <div class="ability-amount">${income ? esc(models.fmtMoney(affordable)) : '—'}</div>
+      </div>
+      <button class="link-btn" data-toggle-ability>${abilityConfigured ? '调整 ›' : '设置 ›'}</button>
+    </div>
+    <div class="ability-meta">${income ? `月收入 ${esc(models.fmtMoney(income))}` : '未设收入'}${essential ? ` · 必要开销 ${esc(models.fmtMoney(essential))}` : ''}</div>
+    <div class="ability-form" id="ability-form" hidden>
+      <div class="form-row"><label>月收入（元）</label><input type="number" id="set-income" min="0" step="100" value="${income || ''}" placeholder="如 8000"></div>
+      <div class="form-row"><label>月必要开销（元）</label><input type="number" id="set-essential" min="0" step="100" value="${essential || ''}" placeholder="留空则按近 3 个月自动估算"></div>
+      <button class="btn primary small" id="save-ability">保存</button>
+    </div>
+  </section>
+
   <section class="section">
     <div class="section-head"><h2>最近记录</h2><button class="link-btn" data-goto="reports">全部报表 ›</button></div>
     <div class="card list-card">${list}</div>
   </section>
 
   <button class="fab" data-goto="entry" aria-label="记一笔">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
   </button>`;
 }
 
@@ -64,6 +90,30 @@ export function bind(app) {
   document.querySelectorAll('[data-goto]').forEach((b) => {
     b.addEventListener('click', () => go(b.dataset.goto));
   });
+  const toggleAbility = document.querySelector('[data-toggle-ability]');
+  if (toggleAbility) {
+    toggleAbility.addEventListener('click', () => {
+      const form = document.getElementById('ability-form');
+      if (form) form.hidden = !form.hidden;
+    });
+  }
+  const saveAbility = document.getElementById('save-ability');
+  if (saveAbility) {
+    saveAbility.addEventListener('click', async () => {
+      const incomeVal = parseFloat(document.getElementById('set-income').value) || 0;
+      const essentialRaw = document.getElementById('set-essential').value;
+      const essentialVal = essentialRaw === '' ? null : parseFloat(essentialRaw) || 0;
+      try {
+        await persist((d) => {
+          d.settings = { ...(d.settings || {}), monthlyIncome: incomeVal, monthlyEssential: essentialVal };
+        });
+        toast('能力配置已保存');
+        rerender();
+      } catch (e) {
+        toast(e.message, 'err');
+      }
+    });
+  }
   document.querySelectorAll('[data-del]').forEach((b) => {
     b.addEventListener('click', async (e) => {
       e.stopPropagation();

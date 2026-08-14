@@ -4,7 +4,7 @@
 
 import * as models from '../models.js';
 import { ring, esc } from '../charts.js';
-import { addGoal, deleteGoal, go, toast, rerender, persist } from '../app.js';
+import { addGoal, deleteGoal, go, toast, rerender } from '../app.js';
 
 const newGoal = { name: '', target: '', deadline: '' };
 
@@ -15,7 +15,6 @@ export function render(app) {
   if (!essential && app.data.transactions.length) {
     essential = models.estimateEssential(app.data.transactions);
   }
-  const affordable = Math.max(0, income - essential);
 
   const goals = models.goalProgress(app.data.goals, app.data.transactions);
   const today = models.todayStr();
@@ -49,20 +48,6 @@ export function render(app) {
     : `<div class="card empty-hint">还没有愿望。把想买的东西写下来，按计划存钱实现它吧 ✨</div>`;
 
   return `
-  <section class="card hero mini">
-    <div class="ability-row">
-      <div><span class="hero-dot in"></span>月收入 <b>${income ? esc(models.fmtMoney(income)) : '未设置'}</b></div>
-      <div><span class="hero-dot out"></span>月必要开销 <b>${essential ? esc(models.fmtMoney(essential)) : '未设置'}</b></div>
-      <div>可支配 <b class="positive">${esc(models.fmtMoney(affordable))}</b></div>
-    </div>
-    <button class="link-btn" data-toggle-ability>${income || essential ? '调整能力配置 ›' : '设置收入与必要开销 ›'}</button>
-    <div class="ability-form" id="ability-form" hidden>
-      <div class="form-row"><label>月收入（元）</label><input type="number" id="set-income" min="0" step="100" value="${income || ''}" placeholder="如 8000"></div>
-      <div class="form-row"><label>月必要开销（元）</label><input type="number" id="set-essential" min="0" step="100" value="${essential || ''}" placeholder="留空则按近 3 个月自动估算"></div>
-      <button class="btn primary small" id="save-ability">保存</button>
-    </div>
-  </section>
-
   <section class="section">
     <div class="section-head"><h2>我的愿望</h2><button class="link-btn" data-toggle-new>+ 新建愿望</button></div>
     <div class="new-goal-form card" id="new-goal-form" hidden>
@@ -76,26 +61,6 @@ export function render(app) {
 }
 
 export function bind(app) {
-  const toggleAbility = document.querySelector('[data-toggle-ability]');
-  if (toggleAbility) {
-    toggleAbility.addEventListener('click', () => {
-      document.getElementById('ability-form').hidden = !document.getElementById('ability-form').hidden;
-    });
-  }
-  const saveAbility = document.getElementById('save-ability');
-  if (saveAbility) {
-    saveAbility.addEventListener('click', async () => {
-      const income = parseFloat(document.getElementById('set-income').value) || 0;
-      const essentialRaw = document.getElementById('set-essential').value;
-      const essential = essentialRaw === '' ? null : parseFloat(essentialRaw) || 0;
-      await persist((d) => {
-        d.settings = { ...(d.settings || {}), monthlyIncome: income, monthlyEssential: essential };
-      });
-      toast('能力配置已保存');
-      rerender();
-    });
-  }
-
   const toggleNew = document.querySelector('[data-toggle-new]');
   if (toggleNew) {
     toggleNew.addEventListener('click', () => {

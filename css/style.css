@@ -1,23 +1,24 @@
 /* ============================================================
-   流水账 · 设计系统（Apple 风格）
-   背景 #F2F2F7 / 卡片 #FFF / 主色 #007AFF / 圆角 18px
+   流水账 · 设计系统（Apple 风格 · 扁平化浅紫）
+   背景 浅紫渐变 / 卡片 #FFF / 主色 #7C5CFC / 圆角 18px
    ============================================================ */
 
 :root {
-  --bg: #F2F2F7;
+  --bg: #F4F1FF;
+  --bg-grad: linear-gradient(180deg, #F7F4FF 0%, #F1ECFF 45%, #E9E2FA 100%);
   --card: #FFFFFF;
   --separator: rgba(60, 60, 67, .12);
   --label: #1C1C1E;
   --label-2: rgba(60, 60, 67, .6);
   --label-3: #8E8E93;
-  --tint: #007AFF;
+  --tint: #7C5CFC;
   --green: #34C759;
   --orange: #FF9500;
   --red: #FF3B30;
-  --purple: #AF52DE;
+  --purple: #8B5CF6;
   --radius-card: 18px;
   --radius-ctl: 12px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 8px 24px rgba(0, 0, 0, .06);
+  --shadow: 0 1px 3px rgba(76, 55, 150, .05), 0 8px 24px rgba(76, 55, 150, .08);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
           "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
 }
@@ -28,6 +29,8 @@ html, body {
   margin: 0;
   padding: 0;
   background: var(--bg);
+  background-image: var(--bg-grad);
+  background-attachment: fixed;
   color: var(--label);
   font-family: var(--font);
   font-size: 15px;
@@ -65,7 +68,7 @@ input {
   justify-content: center;
   gap: 10px;
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  background: rgba(242, 242, 247, .82);
+  background: rgba(247, 244, 255, .82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -381,16 +384,36 @@ input {
 }
 .month-title { font-size: 17px; font-weight: 600; min-width: 92px; text-align: center; }
 
+/* 能力配置卡（首页） */
+.ability-card { padding: 16px; }
+.ability-head { display: flex; align-items: center; justify-content: space-between; }
+.ability-label { font-size: 13px; color: var(--label-2); }
+.ability-amount { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.ability-meta { font-size: 12px; color: var(--label-3); margin-top: 4px; }
+.ability-form { margin-top: 12px; border-top: .5px solid var(--separator); padding-top: 6px; }
+.ability-form .btn { margin-top: 8px; }
+
+/* 折叠分组（设置页） */
+.collapsible { cursor: pointer; }
+.collapsible .chev {
+  font-size: 18px;
+  color: var(--label-3);
+  transition: transform .15s ease;
+  display: inline-block;
+}
+.collapsible.open .chev { transform: rotate(90deg); }
+.collapsible-body { animation: toast-in .15s ease; }
+
 /* 悬浮记录按钮（首页） */
 .fab {
   position: fixed;
-  right: max(18px, calc((100vw - 480px) / 2 + 18px));
+  right: max(20px, calc((100vw - 480px) / 2 + 20px));
   bottom: calc(96px + env(safe-area-inset-bottom));
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--tint);
-  box-shadow: 0 6px 18px rgba(0, 122, 255, .4);
+  box-shadow: 0 6px 18px rgba(124, 92, 252, .4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -411,7 +434,7 @@ input {
   max-width: 520px;
   margin: 0 auto;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-  background: rgba(249, 249, 249, .88);
+  background: rgba(249, 247, 255, .9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-top: .5px solid var(--separator);
@@ -607,15 +630,16 @@ code {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000;
+    --bg: #13111C;
+    --bg-grad: linear-gradient(180deg, #1A1626 0%, #171324 50%, #120F1E 100%);
     --card: #1C1C1E;
     --label: #F2F2F7;
     --label-2: rgba(235, 235, 245, .6);
     --label-3: rgba(235, 235, 245, .3);
     --separator: rgba(84, 84, 88, .6);
   }
-  .topbar { background: rgba(0, 0, 0, .72); }
-  .tabbar { background: rgba(22, 22, 24, .85); border-top-color: var(--separator); }
+  .topbar { background: rgba(19, 17, 28, .72); }
+  .tabbar { background: rgba(24, 21, 34, .85); border-top-color: var(--separator); }
   .num { box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
   .num:active { background: #2C2C2E; }
   .hero.mini { background: var(--card); }
@@ -624,5 +648,5 @@ code {
   .progress-track { background: rgba(255, 255, 255, .12); }
   .tx-icon { background: rgba(255, 255, 255, .08); }
   code { background: rgba(255, 255, 255, .1); }
-  .fab, .tab-fab { box-shadow: 0 6px 18px rgba(0, 122, 255, .35); }
+  .fab, .tab-fab { box-shadow: 0 6px 18px rgba(124, 92, 252, .4); }
 }
