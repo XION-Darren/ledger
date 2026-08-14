@@ -140,9 +140,20 @@ export function bind() {
   if (btnSync) {
     btnSync.addEventListener('click', async () => {
       try {
-        await storage.save(app.data);
+        const remote = await storage.fetchRemote();
+        const localEmpty = !app.data?.transactions?.length;
+        const remoteHasData = remote.exists && remote.data?.transactions?.length > 0;
+        if (remoteHasData && localEmpty) {
+          // 云端有数据、本地为空 → 拉取云端，防止空数据覆盖
+          app.data = remote.data;
+          app.sha = remote.sha;
+          storage.saveLocal(remote.data);
+          toast('已从云端加载数据');
+        } else {
+          await storage.save(app.data);
+          toast('同步完成');
+        }
         app.pending = false;
-        toast('同步完成');
         updateSyncBadge();
       } catch (e) {
         toast(`同步失败：${e.message}`, 'err');
