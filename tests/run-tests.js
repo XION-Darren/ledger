@@ -277,7 +277,9 @@ function mockGitHub({ failFirstPut = false } = {}) {
       }
     }
     if (url.includes('/repos/')) {
-      return { ok: true, status: 200, json: async () => ({ full_name: 'me/ledger', private: true, default_branch: 'main' }) };
+      const m = url.match(/\/repos\/([^/]+)\/([^/?]+)/);
+      const full = m ? `${m[1]}/${m[2]}` : 'me/ledger';
+      return { ok: true, status: 200, json: async () => ({ full_name: full, private: true, default_branch: 'main' }) };
     }
     return { ok: false, status: 404, json: async () => ({ message: 'not found' }) };
   };
@@ -361,6 +363,32 @@ test('storage testConnection 返回仓库信息', async () => {
   const info = await storage.testConnection();
   assert.equal(info.ok, true);
   assert.equal(info.fullName, 'me/ledger');
+});
+
+test('storage 独立数据仓库配置生效（代码/数据分离）', async () => {
+  globalThis.localStorage = mockLocalStorage();
+  globalThis.fetch = mockGitHub();
+  storage.setConfig({ owner: 'me', repo: 'app', token: 'ghp_test', dataOwner: 'me', dataRepo: 'app-data' });
+  // 数据写入应落在数据仓库
+  const r = await storage.save({ version: 1, transactions: [{ id: 'a' }], goals: [], settings: {}, meta: { updatedAt: 1 } });
+  assert.equal(r.ok, true);
+  const remote = await storage.fetchRemote();
+  assert.equal(remote.exists, true);
+  assert.equal(remote.data.transactions[0].id, 'a');
+  // 连接测试同时校验代码仓库与数据仓库
+  const info = await storage.testConnection();
+  assert.equal(info.fullName, 'me/app');        // 代码仓库
+  assert.equal(info.dataRepo, 'me/app-data');   // 数据仓库
+  assert.equal(info.dataPrivate, true);
+});
+
+test('storage 数据仓库留空时回退代码仓库', async () => {
+  setupStorage(); // 配置无 dataOwner/dataRepo
+  const r = await storage.save({ version: 1, transactions: [], goals: [], settings: {}, meta: { updatedAt: 1 } });
+  assert.equal(r.ok, true);
+  const info = await storage.testConnection();
+  assert.equal(info.fullName, 'me/ledger');
+  assert.equal(info.dataRepo, 'me/ledger'); // 回退同一仓库
 });
 
 /* ---------------- 汇总 ---------------- */

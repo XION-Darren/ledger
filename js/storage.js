@@ -1,7 +1,10 @@
 /**
  * storage.js — GitHub 数据存储层
  *
- * 数据文件：仓库根目录 data/ledger.json（GitHub contents API）
+ * ★ 双仓库架构（代码公开 + 数据私有）：
+ *   代码仓库 owner/repo 部署 GitHub Pages（公开）；数据文件存数据仓库
+ *   dataOwner/dataRepo（建议私有）。两者可相同（单仓库模式，留空数据仓库即回退）。
+ * 数据文件：数据仓库根目录 data/ledger.json（GitHub contents API）
  * 策略：localStorage 为本地缓存（离线可读写），GitHub 为权威备份；
  *       写操作更新本地后推送远端，推送失败标记「待同步」。
  * 安全：token 仅存于 localStorage，绝不写入代码/仓库/日志。
@@ -15,7 +18,7 @@ const DATA_PATH = 'data/ledger.json';
 const API = 'https://api.github.com';
 
 export const storage = {
-  /** @returns {{owner:string, repo:string, token:string}} */
+  /** @returns {{owner:string, repo:string, token:string, dataOwner:string, dataRepo:string}} */
   getConfig() {
     try {
       return JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
@@ -25,12 +28,21 @@ export const storage = {
   },
 
   setConfig(cfg) {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify({ owner: '', repo: '', token: '', ...cfg }));
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ owner: '', repo: '', token: '', dataOwner: '', dataRepo: '', ...cfg }));
   },
 
   isConfigured() {
     const c = this.getConfig();
     return !!(c.owner && c.repo && c.token);
+  },
+
+  /** 数据仓库：优先独立数据仓库，未配置则回退代码仓库 */
+  _dataRepo() {
+    const c = this.getConfig();
+    return {
+      owner: c.dataOwner || c.owner,
+      repo: c.dataRepo || c.repo,
+    };
   },
 
   /* ---------- 本地缓存 ---------- */
@@ -81,8 +93,9 @@ export const storage = {
 
   /** 读取远端数据文件；不存在返回 {exists:false} */
   async fetchRemote() {
+    const d = this._dataRepo();
     try {
-      const j = await this._request('GET', `/repos/${encodeURIComponent(this.getConfig().owner)}/${encodeURIComponent(this.getConfig().repo)}/contents/${DATA_PATH}`);
+      const j = await this._request('GET', `/repos/${encodeURIComponent(d.owner)}/${encodeURIComponent(d.repo)}/contents/${DATA_PATH}`);
       const text = atob(j.content.replace(/\s/g, ''));
       return { exists: true, sha: j.sha, data: JSON.parse(text) };
     } catch (e) {
@@ -93,7 +106,7 @@ export const storage = {
 
   /** 推送数据；sha 缺失则新建文件。422/409（缺 sha/冲突）时重新拉取 sha 重试（last-write-wins） */
   async pushRemote(data, sha, retries = 3) {
-    const cfg = this.getConfig();
+    const d = this._dataRepo();
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
     const body = {
       message: `update ledger data`,
@@ -101,7 +114,7 @@ export const storage = {
       ...(sha ? { sha } : {}),
     };
     try {
-      const j = await this._request('PUT', `/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${DATA_PATH}`, body);
+      const j = await this._request('PUT', `/repos/${encodeURIComponent(d.owner)}/${encodeURIComponent(d.repo)}/contents/${DATA_PATH}`, body);
       return { ok: true, sha: j.content.sha };
     } catch (e) {
       // 422 = 文件已存在但未提供 sha（仅当消息含 sha）；409 = sha 过期。都通过重新拉取最新 sha 重试
@@ -114,11 +127,19 @@ export const storage = {
     }
   },
 
-  /** 校验 token 与仓库可访问性（设置页「测试连接」） */
+  /** 校验 token 与仓库可访问性（设置页「测试连接」：代码仓库 + 数据仓库都要可访问） */
   async testConnection() {
     const cfg = this.getConfig();
+    const d = this._dataRepo();
     const j = await this._request('GET', `/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`);
-    return { ok: true, fullName: j.full_name, private: j.private, defaultBranch: j.default_branch };
+    let dataInfo = null;
+    try {
+      const dj = await this._request('GET', `/repos/${encodeURIComponent(d.owner)}/${encodeURIComponent(d.repo)}`);
+      dataInfo = { fullName: dj.full_name, private: dj.private };
+    } catch (e) {
+      throw new Error(`代码仓库 OK，但数据仓库访问失败：${e.message}`);
+    }
+    return { ok: true, fullName: j.full_name, private: j.private, defaultBranch: j.default_branch, dataRepo: dataInfo.fullName, dataPrivate: dataInfo.private };
   },
 
   /* ---------- 高层同步 ---------- */
