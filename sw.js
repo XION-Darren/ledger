@@ -3,7 +3,7 @@
  * 注意：不缓存/拦截 api.github.com（跨域数据请求）与 data/ 目录。
  */
 
-const CACHE = 'ledger-cache-v1';
+const CACHE = 'ledger-cache-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -41,13 +41,12 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.includes('/data/')) return; // 数据文件不缓存
+  // 网络优先：有网时始终取最新版本；离线时回退缓存
   e.respondWith(
-    caches.match(e.request).then(
-      (hit) => hit || fetch(e.request).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-        return res;
-      })
-    )
+    fetch(e.request).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+      return res;
+    }).catch(() => caches.match(e.request).then((hit) => hit || Response.error()))
   );
 });
