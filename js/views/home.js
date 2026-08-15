@@ -11,19 +11,24 @@ export function render(app) {
   const s = models.summarize(app.data.transactions, m);
   const net = s.income - s.expense - s.deposit;
 
-  // 能力配置（月收入 - 必要开销 = 可支配，供愿望计划用）
+  // 能力（本月可支配 = 当月实际收入汇总 − 月必要开销；月必要开销未设则按近 3 个月估算）
   const settings = app.data.settings || {};
-  const income = Number(settings.monthlyIncome) || 0;
   let essential = Number(settings.monthlyEssential) || 0;
   if (!essential && app.data.transactions.length) {
     essential = models.estimateEssential(app.data.transactions);
   }
+  const income = s.income;
   const affordable = Math.max(0, income - essential);
-  const abilityConfigured = !!(income || essential);
+  const abilityConfigured = !!essential;
 
   const recent = [...app.data.transactions]
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
     .slice(0, 10);
+
+  // 愿望进度（供 deposit 记录显示进度条）
+  const goalProgMap = new Map(
+    models.goalProgress(app.data.goals, app.data.transactions).map((g) => [g.id, g])
+  );
 
   const list = recent.length
     ? recent.map((t) => {
@@ -33,15 +38,32 @@ export function render(app) {
           : (models.ACCOUNTS[t.account] || {}).icon;
         const sign = t.type === 'expense' ? '-' : '+';
         const color = t.type === 'income' ? '#30D158' : t.type === 'deposit' ? '#AF52DE' : '#1C1C1E';
+        const wishName = t.type === 'deposit' && t.goalId ? (goalProgMap.get(t.goalId) || {}).name : '';
+        const noteText = t.note || wishName || label;
+        let progressHtml = '';
+        if (t.type === 'deposit' && t.goalId) {
+          const g = goalProgMap.get(t.goalId);
+          if (g && g.target > 0) {
+            const pct = Math.min(100, (g.saved / g.target) * 100);
+            progressHtml = `
+            <div class="tx-wish-progress">
+              <div class="progress-track"><div class="progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+              <div class="tx-wish-meta">${esc(g.name)} · ${esc(models.fmtMoney(g.saved))} / ${esc(models.fmtMoney(g.target))} · ${pct.toFixed(0)}%</div>
+            </div>`;
+          }
+        }
         return `
-        <div class="tx-row" data-id="${esc(t.id)}">
-          <div class="tx-icon">${icon || '📌'}</div>
-          <div class="tx-main">
-            <div class="tx-note">${esc(t.note || label)}</div>
-            <div class="tx-sub">${esc(label)} · ${esc(t.date)}${t.payMethod ? ' · ' + esc(t.payMethod) : ''}</div>
+        <div class="tx-row-wrap">
+          <div class="tx-row" data-id="${esc(t.id)}">
+            <div class="tx-icon">${icon || '📌'}</div>
+            <div class="tx-main">
+              <div class="tx-note">${esc(noteText)}</div>
+              <div class="tx-sub">${esc(label)} · ${esc(t.date)}${t.payMethod ? ' · ' + esc(t.payMethod) : ''}</div>
+            </div>
+            <div class="tx-amount" style="color:${color}">${sign}${esc(models.fmtMoney(t.amount).replace('¥', ''))}</div>
+            <button class="tx-del" data-del="${esc(t.id)}" aria-label="删除">✕</button>
           </div>
-          <div class="tx-amount" style="color:${color}">${sign}${esc(models.fmtMoney(t.amount).replace('¥', ''))}</div>
-          <button class="tx-del" data-del="${esc(t.id)}" aria-label="删除">✕</button>
+          ${progressHtml}
         </div>`;
       }).join('')
     : `<div class="empty-hint">还没有记录，点下方「记一笔」开始吧</div>`;
@@ -56,21 +78,20 @@ export function render(app) {
     <div class="hero-row">
       <div><span class="hero-dot in"></span>收入 <b>${esc(models.fmtMoney(s.income))}</b></div>
       <div><span class="hero-dot out"></span>支出 <b>${esc(models.fmtMoney(s.expense))}</b></div>
-      <div class="${diffCls}">存愿望 <b>${esc(models.fmtMoney(s.deposit))}</b></div>
+      <div class="${diffCls}">愿望基金 <b>${esc(models.fmtMoney(s.deposit))}</b></div>
     </div>
   </section>
 
   <section class="card ability-card">
     <div class="ability-head">
       <div>
-        <div class="ability-label">每月可支配</div>
-        <div class="ability-amount">${income ? esc(models.fmtMoney(affordable)) : '—'}</div>
+        <div class="ability-label">本月可支配</div>
+        <div class="ability-amount">${esc(models.fmtMoney(affordable))}</div>
       </div>
       <button class="link-btn" data-toggle-ability>${abilityConfigured ? '调整 ›' : '设置 ›'}</button>
     </div>
-    <div class="ability-meta">${income ? `月收入 ${esc(models.fmtMoney(income))}` : '未设收入'}${essential ? ` · 必要开销 ${esc(models.fmtMoney(essential))}` : ''}</div>
+    <div class="ability-meta">本月收入 ${esc(models.fmtMoney(income))}${essential ? ` · 必要开销 ${esc(models.fmtMoney(essential))}` : ''}</div>
     <div class="ability-form" id="ability-form" hidden>
-      <div class="form-row"><label>月收入（元）</label><input type="number" id="set-income" min="0" step="100" value="${income || ''}" placeholder="如 8000"></div>
       <div class="form-row"><label>月必要开销（元）</label><input type="number" id="set-essential" min="0" step="100" value="${essential || ''}" placeholder="留空则按近 3 个月自动估算"></div>
       <button class="btn primary small" id="save-ability">保存</button>
     </div>
@@ -100,14 +121,13 @@ export function bind(app) {
   const saveAbility = document.getElementById('save-ability');
   if (saveAbility) {
     saveAbility.addEventListener('click', async () => {
-      const incomeVal = parseFloat(document.getElementById('set-income').value) || 0;
       const essentialRaw = document.getElementById('set-essential').value;
       const essentialVal = essentialRaw === '' ? null : parseFloat(essentialRaw) || 0;
       try {
         await persist((d) => {
-          d.settings = { ...(d.settings || {}), monthlyIncome: incomeVal, monthlyEssential: essentialVal };
+          d.settings = { ...(d.settings || {}), monthlyEssential: essentialVal };
         });
-        toast('能力配置已保存');
+        toast('已保存');
         rerender();
       } catch (e) {
         toast(e.message, 'err');

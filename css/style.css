@@ -176,7 +176,11 @@ input:focus, input:active {
   padding: 12px 0;
   border-bottom: .5px solid var(--separator);
 }
-.tx-row:last-child { border-bottom: none; }
+.tx-row-wrap { border-bottom: .5px solid var(--separator); }
+.tx-row-wrap:last-child { border-bottom: none; }
+.tx-row-wrap .tx-row { border-bottom: none; }
+.tx-wish-progress { padding: 0 0 10px 50px; }
+.tx-wish-meta { font-size: 11.5px; color: var(--label-3); margin-top: 4px; }
 .tx-icon {
   width: 38px;
   height: 38px;
@@ -349,6 +353,8 @@ input:focus, input:active {
   gap: 8px;
   padding: 4px 0 12px 108px;
 }
+.repo-preset { padding: 10px 0 4px; }
+.repo-preset-label { font-size: 13px; color: var(--label-2); margin-bottom: 8px; font-weight: 500; }
 
 .numpad {
   display: grid;
@@ -419,9 +425,56 @@ input:focus, input:active {
 .ability-form { margin-top: 12px; border-top: .5px solid var(--separator); padding-top: 6px; }
 .ability-form .btn { margin-top: 8px; }
 
+/* 愿望基金总余额 */
+.fund-balance-card {
+  background: linear-gradient(135deg, #A78BFA, #7C5CFC);
+  color: #fff;
+  text-align: center;
+  padding: 18px 16px;
+}
+.fund-label { font-size: 13px; color: rgba(255, 255, 255, .85); }
+.fund-amount { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+.fund-sub { font-size: 12px; color: rgba(255, 255, 255, .75); }
+
+/* 愿望存入弹窗 */
+.modal-overlay {  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, .45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  padding: 22px 18px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, .18);
+  animation: slide-up .2s ease;
+}
+@keyframes slide-up {
+  from { transform: translateY(40px); opacity: .6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-title { font-size: 17px; font-weight: 700; text-align: center; }
+.modal-sub { font-size: 13px; color: var(--label-2); text-align: center; margin-top: 2px; }
+.modal-amount {
+  text-align: center;
+  font-size: 38px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 16px 0 12px;
+}
+.modal-numpad { margin: 4px 0 14px; }
+.modal-actions { display: flex; gap: 12px; }
+.modal-actions .btn { flex: 1; }
+
 /* 折叠分组（设置页） */
-.collapsible { cursor: pointer; }
-.collapsible .chev {
+.collapsible { cursor: pointer; }.collapsible .chev {
   font-size: 18px;
   color: var(--label-3);
   transition: transform .15s ease;

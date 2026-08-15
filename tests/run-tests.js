@@ -103,6 +103,27 @@ test('goalProgress 计算已存（存入 - 购买）', () => {
   const [g] = m.goalProgress(goals, all);
   assert.equal(g.saved, 300); // 500 - 200
   assert.equal(g.remain, 7700);
+  assert.equal(g.achieved, false);
+});
+
+test('goalProgress 达成标记', () => {
+  const goals = [{ id: 'g1', name: '小目标', target: 100, deadline: '2027-08-01', createdAt: 1 }];
+  const all = [
+    { id: '1', date: '2026-08-05', type: 'deposit', account: 'wish', amount: 120, note: '', payMethod: '', goalId: 'g1' },
+  ];
+  const [g] = m.goalProgress(goals, all);
+  assert.equal(g.achieved, true);
+  assert.equal(g.remain, 0);
+});
+
+test('wishFundBalance 跨愿望累计（含无归属的存入）', () => {
+  const all = [
+    { id: '1', date: '2026-08-05', type: 'deposit', account: 'wish', amount: 100, note: '', payMethod: '', goalId: 'g1' },
+    { id: '2', date: '2026-08-06', type: 'deposit', account: 'wish', amount: 50, note: '', payMethod: '', goalId: 'g2' },
+    { id: '3', date: '2026-08-07', type: 'deposit', account: 'wish', amount: 30, note: '', payMethod: '', goalId: null },
+    { id: '4', date: '2026-08-08', type: 'expense', account: 'wish', amount: 60, note: '购买', payMethod: '', goalId: 'g1' },
+  ];
+  assert.equal(m.wishFundBalance(all), 120); // 100+50+30-60
 });
 
 /* ---------------- 存钱计划 ---------------- */

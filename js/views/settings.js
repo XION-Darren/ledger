@@ -36,11 +36,18 @@ export function render() {
         </div>
         <div class="form-row"><label>数据所有者</label><input type="text" id="cfg-data-owner" placeholder="留空=同代码仓库" value="${esc(cfg.dataOwner || 'XION-Darren')}" autocomplete="off"></div>
         <div class="form-row"><label>数据仓库名</label><input type="text" id="cfg-data-repo" placeholder="如 ledger-data（建议私有）" value="${esc(cfg.dataRepo || 'ledger-data')}" autocomplete="off"></div>
+        <div class="repo-preset">
+          <div class="repo-preset-label">快速切换数据仓库</div>
+          <div class="chip-row">
+            <button class="chip ${(cfg.dataRepo || 'ledger-data') === 'ledger-data' ? 'sel' : ''}" data-repo-preset="ledger-data">👤 我的账本</button>
+            <button class="chip ${(cfg.dataRepo || 'ledger-data') === 'Hledger-data' ? 'sel' : ''}" data-repo-preset="Hledger-data">🧑 家人账本</button>
+          </div>
+        </div>
         <div class="btn-row">
           <button class="btn primary" id="btn-test">测试连接并保存</button>
           <button class="btn outline" id="btn-clear">断开</button>
         </div>
-        <div class="hint">✅ <b>已预填你的仓库信息</b>（XION-Darren / ledger / ledger-data），你<b>只需填 Access Token</b> 再点「测试连接并保存」。Token 创建：GitHub → Settings → Developer settings → Personal access tokens → 勾选 <code>repo</code> 权限，<b>建议有效期 90 天以上</b>。Token 只保存在你浏览器的 localStorage，不会写入代码或仓库。</div>
+        <div class="hint">✅ <b>已预填你的仓库信息</b>（XION-Darren / ledger / ledger-data），你<b>只需填 Access Token</b> 再点「测试连接并保存」或直接点预设切换。<b>隐私隔离</b>：两个数据仓库均为私有——ledger-data（我的账本）仅你可见；Hledger-data（家人账本）可邀请家人为协作者，家人用自己的 token 访问。Token 创建：GitHub → Settings → Developer settings → Personal access tokens → 勾选 <code>repo</code> 权限，<b>建议有效期 90 天以上</b>。Token 只保存在你浏览器的 localStorage，不会写入代码或仓库。</div>
       </div>
     </div>
   </section>
@@ -84,6 +91,39 @@ export function bind() {
       if (!body) return;
       body.hidden = !body.hidden;
       head.classList.toggle('open', !body.hidden);
+    });
+  });
+
+  // 预设数据仓库一键切换（我的账本 / 家人账本）
+  document.querySelectorAll('[data-repo-preset]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const presetRepo = b.dataset.repoPreset;
+      const owner = document.getElementById('cfg-owner').value.trim() || 'XION-Darren';
+      const repo = document.getElementById('cfg-repo').value.trim() || 'ledger';
+      let token = document.getElementById('cfg-token').value.trim() || storage.getConfig().token;
+      if (!token) return toast('请先填写 Access Token', 'err');
+      const old = storage.getConfig();
+      storage.setConfig({ owner, repo, token, dataOwner: owner, dataRepo: presetRepo });
+      try {
+        const info = await storage.testConnection();
+        const remote = await storage.fetchRemote();
+        if (remote.exists) {
+          app.data = remote.data;
+          app.sha = remote.sha;
+          storage.saveLocal(remote.data);
+        } else if (app.data) {
+          const pushed = await storage.pushRemote(app.data, null);
+          app.sha = pushed.sha;
+        }
+        app.connected = true;
+        app.pending = false;
+        toast(`已切换到数据仓库 ${info.dataRepo}`);
+        updateSyncBadge();
+        rerender();
+      } catch (e) {
+        storage.setConfig(old); // 失败回滚
+        toast(`切换失败：${e.message}`, 'err');
+      }
     });
   });
 

@@ -78,7 +78,7 @@ export function addGoal(raw) {
 export function deleteGoal(id) {
   return persist((d) => {
     d.goals = d.goals.filter((g) => g.id !== id);
-    d.transactions = d.transactions.filter((t) => t.goalId !== id || t.type !== 'deposit');
+    // 不删除该愿望的存入记录：资金保留在愿望基金，跨期累计
   });
 }
 

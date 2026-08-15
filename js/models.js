@@ -170,8 +170,18 @@ export function goalProgress(goals, txs) {
     const d = byGoal[g.id] || { deposit: 0, spent: 0 };
     const saved = Math.max(0, d.deposit - d.spent);
     const remain = Math.max(0, g.target - saved);
-    return { ...g, saved, spent: d.spent, remain };
+    return { ...g, saved, spent: d.spent, remain, achieved: saved >= g.target };
   });
+}
+
+/** 愿望基金总余额 = 全部存入 − 全部愿望支出（跨愿望累计，不受删除愿望影响） */
+export function wishFundBalance(txs) {
+  let balance = 0;
+  for (const t of txs) {
+    if (t.type === 'deposit') balance += Number(t.amount) || 0;
+    if (t.type === 'expense' && t.account === 'wish') balance -= Number(t.amount) || 0;
+  }
+  return Math.max(0, balance);
 }
 
 /* ---------------- 愿望存钱计划算法 ---------------- */
